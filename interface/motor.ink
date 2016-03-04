@@ -4,6 +4,31 @@ import blueprint
 import io
 import "constants.ink"
 
+iev3_MotorState = fn (state_str) {
+	let state_list = state_str.split(" ")
+
+	this.running = 0
+	this.ramping = 0
+	this.holding = 0
+	this.stalled = 0
+
+	state_list.each { | v |
+		if (this[v] != undefined) {
+			this[v] = 1
+		}
+	}
+
+	this.missing = fn (name) {
+		let tmp = ""
+		if (name[-1] == "?" &&
+			base[tmp = name.substr(0, name.length() - 1)] != undefined) {
+			base[tmp]
+		} else {
+			0
+		}
+	}
+}
+
 iev3_Motor = fn (id) {
 	this.id = id
 	this.setCommand = fn (cmd) {
@@ -18,6 +43,9 @@ iev3_Motor = fn (id) {
 	this.setTimeSP = fn (time) {
 		new File(iev3_Motor.getPathOf(base.id, "time_sp"), "w").puts(time.to_str())
 	}
+	this.setStopCommand = fn (cmd) {
+		new File(iev3_Motor.getPathOf(base.id, "stop_command"), "w").puts(cmd.to_str())
+	}
 	this.getPosition = fn () {
 		let tmp = new File(iev3_Motor.getPathOf(base.id, "position"), "r").gets()
 		numval(tmp.substr(0, tmp.length() - 1))
@@ -30,6 +58,10 @@ iev3_Motor = fn (id) {
 		let tmp = new File(iev3_Motor.getPathOf(base.id, "count_per_rot"), "r").gets()
 		numval(tmp.substr(0, tmp.length() - 1))
 	}
+	this.getState = fn () {
+		let tmp = new File(iev3_Motor.getPathOf(base.id, "state"), "r").gets()
+		new iev3_MotorState(tmp.substr(0, tmp.length() - 1))
+	}
 	/* NOTICE: getSpeed and setDutyCircleSpeed are not the same */
 	this.setDutyCircleSpeed = fn (speed) { /* -100 < speed < 100 */
 		new File(iev3_Motor.getPathOf(base.id, "duty_cycle_sp"), "w").puts(speed.to_str())
@@ -41,17 +73,27 @@ iev3_Motor = fn (id) {
 		base.setDutyCircleSpeed(speed)
 		base.setCommand("run-forever")
 	}
-	this.runTimed = fn (speed, time) {
-		base.setSpeedSP(speed)
+	this.runTimed = fn (speed, time, stop_cmd) {
+		stop_cmd = stop_cmd || "coast"
+		base.setDutyCircleSpeed(speed)
 		base.setTimeSP(time)
+		base.setStopCommand(stop_cmd)
 		base.setCommand("run-timed")
 	}
-	this.runRelat = fn (speed, deg) {
-		base.setSpeedSP(speed)
+	this.runRelat = fn (speed, deg, stop_cmd) {
+		stop_cmd = stop_cmd || "coast"
+		base.setDutyCircleSpeed(speed)
 		base.setPositionSP(deg)
+		base.setStopCommand(stop_cmd)
 		base.setCommand("run-to-rel-pos")
 	}
-	this.stop = fn () {
+	this.runDirect = fn (speed) {
+		base.setDutyCircleSpeed(speed)
+		base.setCommand("run-direct")
+	}
+	this.stop = fn (stop_cmd) {
+		stop_cmd = stop_cmd || "coast"
+		base.setStopCommand(stop_cmd)
 		base.setCommand("stop")
 	}
 	this.reset = fn () {

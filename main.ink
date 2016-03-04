@@ -70,9 +70,48 @@ motor_list.each { | val |
 	}
 }
 
-//motorB.runTimed(100, 3000)
+//motorB.stop(100)
+
+//motorB.runTimed(10, 3000)
 //motorC.runTimed(100, 3000)
 
+//motorC.reset()
+//motorB.reset()
+
+let sm_acc = fn (motor) {
+	for (let i = 0, i < 100, i += 5) {
+		motor.runDirect(i)
+		receive() for(50)
+	}
+}
+
+let wait_for_stop = fn (motor) {
+	while (1) {
+		if (!motor.getState().running) {
+			p("stop!!")
+			break
+		}
+	}
+}
+
+motorC.runRelat(50, 1080)
+wait_for_stop(motorC)
+
+p("end!")
+
+sm_acc(motorC)
+receive() for(3000)
+motorC.stop()
+
+motorC.runForever(100)
+receive() for(1000)
+motorC.stop("hold")
+
+motorC.runForever(100)
+receive() for(1000)
+motorC.stop()
+
+exit
 
 motorC.runRelat(100, 360)
 motorB.runRelat(100, 360)
@@ -81,6 +120,21 @@ receive() for(1000)
 
 motorC.runRelat(100, 360)
 motorB.runRelat(100, 360)
+
+receive() for(1000)
+
+motorC.runDirect(20)
+motorB.runDirect(40)
+
+receive() for(1000)
+
+motorC.setDutyCircleSpeed(50)
+motorB.setDutyCircleSpeed(100)
+
+receive() for(1000)
+
+motorC.stop()
+motorB.stop()
 
 /*
 iev3_Motor.getList().each { | val |
