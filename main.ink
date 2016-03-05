@@ -6,6 +6,7 @@ import multink
 import "interface/sensor.ink"
 import "interface/motor.ink"
 import "interface/led.ink"
+import "interface/sound.ink"
 import "interface/general.ink"
 
 `$io.file.File`.putln = fn (str) {
@@ -107,11 +108,9 @@ let led_rainbow = fn () {
 
 	for (let i = 255, i > 0, i -= 5) {
 		iev3_LED_setBrightness("left", "red", i)
-		receive() for(10)
 	}
 	for (let i = 0, i < 255, i += 5) {
 		iev3_LED_setBrightness("left", "green", i)
-		receive() for(10)
 	}
 
 	iev3_LED_setLEDState(backup)
@@ -139,19 +138,34 @@ let led_alert = fn (count, max_bright) {
 	iev3_LED_setLEDState(backup)
 }
 
+iev3_Sound_ESpeak("Welcome to, ink, on E V 3 dev.")
+iev3_Sound_ESpeak("其实我会说中文", 200, "-vzh")
+
+iev3_Sound_ESpeak("L E D 测试", 200, "-vzh")
+
+iev3_LED_setLEDState({ l_g: 255, l_r: 0, r_g: 255, r_r: 0 })
+
 led_rainbow()
 led_alert(10)
+
+iev3_Sound_ESpeak("电机测试", 200, "-vzh")
 
 require(motorC)
 
 motorC.runRelat(100, 1080)
 wait_for_stop(motorC)
 
+iev3_Sound_ESpeak("电机转动完成", 200, "-vzh")
+
 p("end!")
+
+iev3_Sound_ESpeak("智能加速测试", 200, "-vzh")
 
 sm_acc(motorC)
 receive() for(3000)
 motorC.stop()
+
+iev3_Sound_ESpeak("刹车模式测试", 200, "-vzh")
 
 motorC.runForever(100)
 receive() for(1000)
@@ -160,6 +174,8 @@ motorC.stop("hold")
 motorC.runForever(100)
 receive() for(1000)
 motorC.stop()
+
+iev3_Sound_ESpeak("其他测试", 200, "-vzh")
 
 motorC.runRelat(100, 360)
 motorB.runRelat(100, 360)
@@ -185,6 +201,9 @@ receive() for(1000)
 
 motorC.stop()
 motorB.stop()
+
+iev3_Sound_ESpeak("电机测试结束", 200, "-vzh")
+iev3_Sound_ESpeak("所有测试结束, 白白", 200, "-vzh")
 
 /*
 iev3_Motor.getList().each { | val |

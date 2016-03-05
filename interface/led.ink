@@ -27,7 +27,10 @@ iev3_LED_getLEDState = fn () {
 }
 
 iev3_LED_setLEDState = fn (state) {
-	if (state.l_g && state.l_r && state.r_g && state.r_r) {
+	if (state.l_g != undefined &&
+		state.l_r != undefined &&
+		state.r_g != undefined &&
+		state.r_r != undefined) {
 		iev3_LED_setBrightness("left", "green", state.l_g)
 		iev3_LED_setBrightness("left", "red", state.l_r)
 		iev3_LED_setBrightness("right", "green", state.r_g)
