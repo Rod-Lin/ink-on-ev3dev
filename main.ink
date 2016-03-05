@@ -5,6 +5,7 @@ import io
 import multink
 import "interface/sensor.ink"
 import "interface/motor.ink"
+import "interface/led.ink"
 import "interface/general.ink"
 
 `$io.file.File`.putln = fn (str) {
@@ -94,7 +95,56 @@ let wait_for_stop = fn (motor) {
 	}
 }
 
-motorC.runRelat(50, 1080)
+let require = fn (motor) {
+	if (!motor) {
+		p("Require motor")
+		exit
+	}
+}
+
+let led_rainbow = fn () {
+	let backup = iev3_LED_getLEDState()
+
+	for (let i = 255, i > 0, i -= 5) {
+		iev3_LED_setBrightness("left", "red", i)
+		receive() for(10)
+	}
+	for (let i = 0, i < 255, i += 5) {
+		iev3_LED_setBrightness("left", "green", i)
+		receive() for(10)
+	}
+
+	iev3_LED_setLEDState(backup)
+}
+
+let led_alert = fn (count, max_bright) {
+	max_bright = max_bright || 255
+
+	let backup = iev3_LED_getLEDState()
+
+	for (let i = 0, i < count, i++) {
+		if (i % 2) {
+			iev3_LED_setBrightness("left", "red", max_bright)
+			iev3_LED_setBrightness("right", "red", max_bright)
+			iev3_LED_setBrightness("left", "green", 0)
+			iev3_LED_setBrightness("right", "green", 0)
+		} else {
+			iev3_LED_setBrightness("left", "green", max_bright)
+			iev3_LED_setBrightness("right", "green", max_bright)
+			iev3_LED_setBrightness("left", "red", 0)
+			iev3_LED_setBrightness("right", "red", 0)
+		}
+	}
+
+	iev3_LED_setLEDState(backup)
+}
+
+led_rainbow()
+led_alert(10)
+
+require(motorC)
+
+motorC.runRelat(100, 1080)
 wait_for_stop(motorC)
 
 p("end!")
@@ -111,12 +161,12 @@ motorC.runForever(100)
 receive() for(1000)
 motorC.stop()
 
-exit
-
 motorC.runRelat(100, 360)
 motorB.runRelat(100, 360)
 
 receive() for(1000)
+
+require(motorB)
 
 motorC.runRelat(100, 360)
 motorB.runRelat(100, 360)
