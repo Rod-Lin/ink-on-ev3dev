@@ -9,11 +9,11 @@ import "interface/led.ink"
 import "interface/sound.ink"
 import "interface/general.ink"
 
-`$io.file.File`.putln = fn (str) {
+$file.putln = fn (str) {
 	base.puts(str.to_str() + "\n")
 }
 
-`$io.file.File`.putsp = fn (str) {
+$file.putsp = fn (str) {
 	base.puts(str.to_str() + " ")
 }
 
@@ -141,7 +141,8 @@ let led_alert = fn (count, max_bright) {
 iev3_Sound_ESpeak("Welcome to, ink, on E V 3 dev.")
 iev3_Sound_ESpeak("其实我会说中文", 200, "-vzh")
 
-iev3_Sound_ESpeak("L E D 测试", 200, "-vzh")
+iev3_Sound_ESpeak("L E D")
+iev3_Sound_ESpeak("测试", 200, "-vzh")
 
 iev3_LED_setLEDState({ l_g: 255, l_r: 0, r_g: 255, r_r: 0 })
 

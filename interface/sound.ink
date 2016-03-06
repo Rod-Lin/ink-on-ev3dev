@@ -1,6 +1,7 @@
 #! /usr/bin/ink
 
 import blueprint
+import blueprint.sys
 import io
 import "constants.ink"
 
