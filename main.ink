@@ -17,6 +17,29 @@ $file.putsp = fn (str) {
 	base.puts(str.to_str() + " ")
 }
 
+$array.p = fn (args...) {
+	let prefix = ""
+	if (args.size()) {
+		prefix = args[0];
+	}
+
+	p(prefix + "{");
+	base.each() { | elem |
+		if (elem.p) {
+			elem.p(prefix + "  ");
+		} {
+			p(prefix + "  " + elem + ",");
+		}
+	}
+	p(prefix + "}");
+}
+
+$numeric.times = fn (block) {
+	for (let i = 0, i < base, i++) {
+		block()
+	}
+}
+
 //sensor_1_mux3 = new iev3_Sensor(17);
 //sensor_1_mux2 = new iev3_Sensor(9);
 //sensor_1_mux3 = new iev3_Sensor(11);
@@ -44,31 +67,30 @@ $file.putsp = fn (str) {
 	stdout.putln(port.mux_id)
 }
 
-p("mux 1-3 in input 1")
+let sensor1 = null
 
 sensor_list.each { | val |
 	let port = new iev3_Port(val.port_name)
 	if (port.type == "in" && port.is_mux) {
-		let tmp_sensor = new iev3_Sensor(val.id);
+		let tmp_sensor = new iev3_Sensor(val.id)
 		p(tmp_sensor.getValue())
+	} else if (port.type == "in" && port.id == "1") {
+		sensor1 = new iev3_Sensor(val.id)
 	}
 }
 
 let motorB = null
 let motorC = null
+let motorA = null
 
 motor_list.each { | val |
 	let port = new iev3_Port(val.port_name)
 	if (port.type == "out" && port.id == "B") {
 		motorB = new iev3_Motor(val.id);
-		//let tmp_motor = new iev3_Motor(val.id);
-		//tmp_motor.runRelat(100, 360)
-		//p("start")
-		//receive() for(8000)
-		//p("end");
-		//tmp_motor.stop()
 	} else if (port.type == "out" && port.id == "C") {
 		motorC = new iev3_Motor(val.id);
+	} else if (port.type == "out" && port.id == "A") {
+		motorA = new iev3_Motor(val.id);
 	}
 }
 
@@ -96,10 +118,44 @@ let wait_for_stop = fn (motor) {
 	}
 }
 
-let require = fn (motor) {
-	if (!motor) {
-		p("Require motor")
-		exit
+let wait_stop_while_do = fn (motor, block) {
+	while (1) {
+		if (typename(block) == "function") {
+			block()
+		}
+		if (!motor.getState().running) {
+			p("stop!!")
+			break
+		}
+	}
+}
+
+let wait_hold_while_do = fn (motor, block) {
+	while (1) {
+		if (typename(block) == "function") {
+			block()
+		}
+		if (motor.getState().holding) {
+			p("hold!!")
+			break
+		}
+	}
+}
+
+let require = fn (args...) {
+	let block = args.last()
+	let run = 1
+	args.each { | val |
+		if (val == undefined || val == null) {
+			p("Require failed")
+			run = 0
+			if (typename(block) != "function") {
+				exit
+			}
+		}
+	}
+	if (run && typename(block) == "function") {
+			block()
 	}
 }
 
@@ -138,73 +194,186 @@ let led_alert = fn (count, max_bright) {
 	iev3_LED_setLEDState(backup)
 }
 
-iev3_Sound_ESpeak("Welcome to, ink, on E V 3 dev.")
-iev3_Sound_ESpeak("其实我会说中文", 200, "-vzh")
+let scan_by = fn (motor, dis, part, do_block) {
+	let unit = (dis / part).floor()
+	let i = 0
+	let judge = fn () { i < dis }
 
-iev3_Sound_ESpeak("L E D")
-iev3_Sound_ESpeak("测试", 200, "-vzh")
+	if (dis < 0) {
+		judge = fn () { i > dis }
+	}
 
-iev3_LED_setLEDState({ l_g: 255, l_r: 0, r_g: 255, r_r: 0 })
+	for (i = 0, judge(), i += unit) {
+		motor.runRelat(40, unit, "hold")
+		wait_hold_while_do(motor, do_block)
+	}
+	motor.stop()
+}
 
-led_rainbow()
-led_alert(10)
+/* offset: look from head to tail: 
+ * offset > 0: sensor on the right
+ * offset < 0: sensor on the left
+ * unit: cm
+ */
+let scan_scanner_offset = 5
+let scan_is_black = fn (val) { val < 15 }
 
-iev3_Sound_ESpeak("电机测试", 200, "-vzh")
+let times_array = fn (time, val) {
+	ret = new Array()
+	time.times {
+		ret.push(val)
+	}
+	ret
+}
 
-require(motorC)
+let expand_data = fn (data, to_size) {
+	times_array((to_size - data.size()) / 2, 0) + data + times_array((to_size - data.size()) / 2, 0) +
+	if ((to_size - data.size()) % 2) { [0] } { [] }
+}
 
-motorC.runRelat(100, 1080)
-wait_for_stop(motorC)
+let adjust_data = fn (data, to_size) {
+	if (data.size() < to_size) {
+		expand_data(data, to_size)
+	} else if (data.size() > to_size) {
+		compress_data(data, to_size)
+	} else {
+		data
+	}
+}
 
-iev3_Sound_ESpeak("电机转动完成", 200, "-vzh")
+let compress_data = fn (data) {
+	let ret = new Array()
 
-p("end!")
+	for (let i = 0, i < data.size(), i++) {
+		if (data[i] == 1) {
+			ret.push(1)
+			while (++i < data.size() && data[i] == 1)
+			while (i + 1 < data.size() && data[i + 1] == 1) {
+				/* case like 11101 */
+				/*              ^  */
+				while (++i < data.size() && data[i] == 1)
+			}
+			i--
+		} else {
+			ret.push(data[i])
+		}
+	}
 
-iev3_Sound_ESpeak("智能加速测试", 200, "-vzh")
+	ret
+}
 
-sm_acc(motorC)
-receive() for(3000)
-motorC.stop()
+let get_ratio = fn (data) {
+	let bin_data = new Array()
+	data.each { | val |
+		if (scan_is_black(val)) {
+			bin_data.push(1) // black
+		} else {
+			bin_data.push(0)
+		}
+	}
+	compress_data(bin_data)
+}
 
-iev3_Sound_ESpeak("刹车模式测试", 200, "-vzh")
+require(motorA, sensor1) {
+	let data = new Array()
+	for (let i = 0, i < 3, i++) {
+		data.push(new Array())
+		/*motorA.runRelat(25, -100)
+		wait_stop_while_do(motorA) {
+			data.last().push(sensor1.getValue())
+			//p("la~~")
+		}
 
-motorC.runForever(100)
-receive() for(1000)
-motorC.stop("hold")
+		data.push(new Array())
+		motorA.runRelat(25, 107)
+		wait_stop_while_do(motorA) {
+			data.last().push(sensor1.getValue())
+			//p("wu~~")
+		}*/
+		
+		scan_by(motorA, -80, 10) {
+			data[i].push(sensor1.getValue())
+		}
+		motorA.runRelat(50, 95)
+		wait_for_stop(motorA)
+	}
+	data.p()
+	data.each { | val |
+		get_ratio(val).p()
+	}
+}
 
-motorC.runForever(100)
-receive() for(1000)
-motorC.stop()
+if (0) {
 
-iev3_Sound_ESpeak("其他测试", 200, "-vzh")
+	iev3_Sound_ESpeak("Welcome to, ink, on E V 3 dev.")
+	iev3_Sound_ESpeak("其实我会说中文", 200, "-vzh")
 
-motorC.runRelat(100, 360)
-motorB.runRelat(100, 360)
+	iev3_Sound_ESpeak("L E D")
+	iev3_Sound_ESpeak("测试", 200, "-vzh")
 
-receive() for(1000)
+	iev3_LED_setLEDState({ l_g: 255, l_r: 0, r_g: 255, r_r: 0 })
 
-require(motorB)
+	led_rainbow()
+	led_alert(10)
 
-motorC.runRelat(100, 360)
-motorB.runRelat(100, 360)
+	iev3_Sound_ESpeak("电机测试", 200, "-vzh")
 
-receive() for(1000)
+	require(motorC)
 
-motorC.runDirect(20)
-motorB.runDirect(40)
+	motorC.runRelat(100, 1080)
+	wait_for_stop(motorC)
 
-receive() for(1000)
+	iev3_Sound_ESpeak("电机转动完成", 200, "-vzh")
 
-motorC.setDutyCircleSpeed(50)
-motorB.setDutyCircleSpeed(100)
+	p("end!")
 
-receive() for(1000)
+	iev3_Sound_ESpeak("智能加速测试", 200, "-vzh")
 
-motorC.stop()
-motorB.stop()
+	sm_acc(motorC)
+	receive() for(3000)
+	motorC.stop()
 
-iev3_Sound_ESpeak("电机测试结束", 200, "-vzh")
-iev3_Sound_ESpeak("所有测试结束, 白白", 200, "-vzh")
+	iev3_Sound_ESpeak("刹车模式测试", 200, "-vzh")
+
+	motorC.runForever(100)
+	receive() for(1000)
+	motorC.stop("hold")
+
+	motorC.runForever(100)
+	receive() for(1000)
+	motorC.stop()
+
+	iev3_Sound_ESpeak("其他测试", 200, "-vzh")
+
+	motorC.runRelat(100, 360)
+	motorB.runRelat(100, 360)
+
+	receive() for(1000)
+
+	require(motorB)
+
+	motorC.runRelat(100, 360)
+	motorB.runRelat(100, 360)
+
+	receive() for(1000)
+
+	motorC.runDirect(20)
+	motorB.runDirect(40)
+
+	receive() for(1000)
+
+	motorC.setDutyCircleSpeed(50)
+	motorB.setDutyCircleSpeed(100)
+
+	receive() for(1000)
+
+	motorC.stop()
+	motorB.stop()
+
+	iev3_Sound_ESpeak("电机测试结束", 200, "-vzh")
+	iev3_Sound_ESpeak("所有测试结束, 白白", 200, "-vzh")
+
+}
 
 /*
 iev3_Motor.getList().each { | val |

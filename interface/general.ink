@@ -17,7 +17,7 @@ iev3_Port = fn (port_name) {
 	dec.each { | val |
 		if (val.substr(0, 2) == "in") {
 			this.type = "in"
-			this.id = numval(val.substr(2))
+			this.id = val.substr(2)
 		} else if (val.substr(0, 3) == "out") {
 			this.type = "out"
 			this.id = val.substr(3)
