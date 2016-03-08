@@ -226,41 +226,73 @@ let times_array = fn (time, val) {
 	ret
 }
 
-let expand_data = fn (data, to_size) {
-	times_array((to_size - data.size()) / 2, 0) + data + times_array((to_size - data.size()) / 2, 0) +
-	if ((to_size - data.size()) % 2) { [0] } { [] }
-}
-
-let adjust_data = fn (data, to_size) {
-	if (data.size() < to_size) {
-		expand_data(data, to_size)
-	} else if (data.size() > to_size) {
-		compress_data(data, to_size)
-	} else {
-		data
-	}
-}
-
 let compress_data = fn (data) {
 	let ret = new Array()
 
 	for (let i = 0, i < data.size(), i++) {
 		if (data[i] == 1) {
-			ret.push(1)
-			while (++i < data.size() && data[i] == 1)
+			let count = 1
+			for (0, ++i < data.size() && data[i] == 1, count++)
 			while (i + 1 < data.size() && data[i + 1] == 1) {
 				/* case like 11101 */
 				/*              ^  */
-				while (++i < data.size() && data[i] == 1)
+				for (0, ++i < data.size() && data[i] == 1, count++)
 			}
+			ret.push(count)
 			i--
 		} else {
-			ret.push(data[i])
+			let count = -1
+			for (0, ++i < data.size() && data[i] == 0, count--)
+			ret.push(count)
+			i--
 		}
 	}
 
 	ret
 }
+
+let choose_left_offset = 0
+let choose_right_offset = 1
+
+let choose_first = fn (cdata) {
+	let left_w = 0
+	let right_w = 0
+
+	for (let i = 0, i < cdata.size() && cdata[i] < 0, i++) {
+		left_w -= cdata[i]
+	}
+
+	while (i < cdata.size()) {
+		for (0, i < cdata.size() && cdata[i] >= 0, i++)
+
+		for (0, i < cdata.size() && cdata[i] < 0, i++) {
+			right_w -= cdata[i]
+		}
+	}
+
+	[left_w + choose_left_offset, right_w + choose_right_offset]
+}
+
+let apply_to_motor = fn (data) {
+	let base_num = 5
+	require(motorB, motorC) {
+		motorB.runRelat(100, data[0] * 5)
+		motorC.runRelat(100, data[1] * 5)
+		wait_for_stop(motorB)
+		wait_for_stop(motorC)
+	}
+}
+
+require(motorB, motorC) {
+		motorB.setRelat(100, 60)
+		motorC.setRelat(100, 60)
+
+		motorB.goRelat()
+		motorC.goRelat()
+
+		//wait_for_stop(motorB)
+		//wait_for_stop(motorC)
+	}
 
 let get_ratio = fn (data) {
 	let bin_data = new Array()
@@ -274,37 +306,38 @@ let get_ratio = fn (data) {
 	compress_data(bin_data)
 }
 
-require(motorA, sensor1) {
-	let data = new Array()
-	for (let i = 0, i < 3, i++) {
-		data.push(new Array())
-		/*motorA.runRelat(25, -100)
-		wait_stop_while_do(motorA) {
-			data.last().push(sensor1.getValue())
-			//p("la~~")
-		}
+require(motorA, sensor1, null) {
+	let cdata = null
 
-		data.push(new Array())
-		motorA.runRelat(25, 107)
-		wait_stop_while_do(motorA) {
-			data.last().push(sensor1.getValue())
-			//p("wu~~")
-		}*/
-		
-		scan_by(motorA, -80, 10) {
-			data[i].push(sensor1.getValue())
+	for (let j = 0, j < 5, j++) {
+		let data = new Array()
+		for (let i = 0, i < 1, i++) {
+			/*motorA.runRelat(25, -100)
+			wait_stop_while_do(motorA) {
+				data.last().push(sensor1.getValue())
+				//p("la~~")
+			}
+
+			data.push(new Array())
+			motorA.runRelat(25, 107)
+			wait_stop_while_do(motorA) {
+				data.last().push(sensor1.getValue())
+				//p("wu~~")
+			}*/
+			
+			scan_by(motorA, -80, 10) {
+				data.push(sensor1.getValue())
+			}
+			motorA.runRelat(50, 85)
+			wait_for_stop(motorA)
 		}
-		motorA.runRelat(50, 95)
-		wait_for_stop(motorA)
-	}
-	data.p()
-	data.each { | val |
-		get_ratio(val).p()
+		data.p()
+		(cdata = choose_first(get_ratio(data))).p()
+		apply_to_motor(cdata)
 	}
 }
 
 if (0) {
-
 	iev3_Sound_ESpeak("Welcome to, ink, on E V 3 dev.")
 	iev3_Sound_ESpeak("其实我会说中文", 200, "-vzh")
 
@@ -372,7 +405,6 @@ if (0) {
 
 	iev3_Sound_ESpeak("电机测试结束", 200, "-vzh")
 	iev3_Sound_ESpeak("所有测试结束, 白白", 200, "-vzh")
-
 }
 
 /*

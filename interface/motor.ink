@@ -87,6 +87,15 @@ iev3_Motor = fn (id) {
 		base.setStopCommand(stop_cmd)
 		base.setCommand("run-to-rel-pos")
 	}
+	this.setRelat = fn (speed, deg, stop_cmd) {
+		stop_cmd = stop_cmd || "coast"
+		base.setDutyCircleSpeed(speed)
+		base.setPositionSP(deg)
+		base.setStopCommand(stop_cmd)
+	}
+	this.goRelat = fn () {
+		base.setCommand("run-to-rel-pos")
+	}
 	this.runDirect = fn (speed) {
 		base.setDutyCircleSpeed(speed)
 		base.setCommand("run-direct")
