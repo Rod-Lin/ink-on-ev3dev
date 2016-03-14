@@ -4,7 +4,7 @@ import blueprint
 import io
 import "constants.ink"
 
-iev3_Port = fn (port_name) {
+let iev3_Port = fn (port_name) {
 	let dec = port_name.split(":")
 	let i = 0
 
@@ -28,5 +28,22 @@ iev3_Port = fn (port_name) {
 			this.interface = val
 		}
 		i++
+	}
+}
+
+let require = fn (args...) {
+	let block = args.last()
+	let run = 1
+	args.each { | val |
+		if (val == undefined || val == null) {
+			p("Require failed")
+			run = 0
+			if (typename(block) != "function") {
+				exit
+			}
+		}
+	}
+	if (run && typename(block) == "function") {
+			block()
 	}
 }

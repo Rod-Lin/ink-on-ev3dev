@@ -4,7 +4,7 @@ import blueprint
 import io
 import "constants.ink"
 
-iev3_MotorState = fn (state_str) {
+let iev3_MotorState = fn (state_str) {
 	let state_list = state_str.split(" ")
 
 	this.running = 0
@@ -29,7 +29,7 @@ iev3_MotorState = fn (state_str) {
 	}
 }
 
-iev3_Motor = fn (id) {
+let iev3_Motor = fn (id) {
 	this.id = id
 	this.setCommand = fn (cmd) {
 		new File(iev3_Motor.getPathOf(base.id, "command"), "w").puts(cmd.to_str())
@@ -110,11 +110,24 @@ iev3_Motor = fn (id) {
 	}
 }
 
-iev3_Motor.getPathOf = fn (id, file) {
+let runDoubleRelat = fn (m1, m2, m1sp, m1pos, m2sp, m2pos) {
+	m2sp ||= m1sp
+	m2pos ||= m1pos
+
+	require (m1, m2) {
+		m1.setRelat(m1sp, m1pos)
+		m2.setRelat(m2sp, m2pos)
+
+		m1.goRelat()
+		m2.goRelat()
+	}
+}
+
+let iev3_Motor.getPathOf = fn (id, file) {
 	iev3_TMotorPath + "/motor" + id + "/" + file
 }
 
-iev3_Motor.getList = fn () {
+let iev3_Motor.getList = fn () {
 	let dir = new Directory(iev3_TMotorPath)
 	let ret = new Array()
 

@@ -4,20 +4,20 @@ import blueprint
 import io
 import "constants.ink"
 
-iev3_LED_getPathOf = fn (direct, color) { /* direct: left/right; color: red/green */
+let iev3_LED_getPathOf = fn (direct, color) { /* direct: left/right; color: red/green */
 	iev3_LEDPath + "/ev3:" + direct.to_str() + ":" + color.to_str() + ":ev3dev";
 }
 
-iev3_LED_setBrightness = fn (direct, color, bright) {
+let iev3_LED_setBrightness = fn (direct, color, bright) {
 	new File(iev3_LED_getPathOf(direct, color) + "/brightness", "w").puts(bright.to_str())
 }
 
-iev3_LED_getBrightness = fn (direct, color) {
+let iev3_LED_getBrightness = fn (direct, color) {
 	let tmp = new File(iev3_LED_getPathOf(direct, color) + "/brightness", "r").gets()
 	numval(tmp.substr(0, tmp.length() - 1))
 }
 
-iev3_LED_getLEDState = fn () {
+let iev3_LED_getLEDState = fn () {
 	{
 		l_g: iev3_LED_getBrightness("left", "green"),
 		l_r: iev3_LED_getBrightness("left", "red"),
@@ -26,7 +26,7 @@ iev3_LED_getLEDState = fn () {
 	}
 }
 
-iev3_LED_setLEDState = fn (state) {
+let iev3_LED_setLEDState = fn (state) {
 	if (state.l_g != undefined &&
 		state.l_r != undefined &&
 		state.r_g != undefined &&

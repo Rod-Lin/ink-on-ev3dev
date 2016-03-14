@@ -4,7 +4,7 @@ import blueprint
 import io
 import "constants.ink"
 
-iev3_Sensor = fn (id) { /* id: numeric */
+let iev3_Sensor = fn (id) { /* id: numeric */
 	this.id = id
 	this.getValue = fn () { /* error: return -1 */
 		if (!(let ret = new File(iev3_SensorPath + "/sensor" + base.id + "/value0").gets())) {
@@ -15,7 +15,7 @@ iev3_Sensor = fn (id) { /* id: numeric */
 	}
 }
 
-iev3_Sensor.getList = fn () {
+let iev3_Sensor.getList = fn () {
 	let dir = new Directory(iev3_SensorPath)
 	let ret = new Array()
 

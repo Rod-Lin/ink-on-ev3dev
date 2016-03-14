@@ -68,6 +68,7 @@ $numeric.times = fn (block) {
 }
 
 let sensor1 = null
+let sensor2 = null
 
 sensor_list.each { | val |
 	let port = new iev3_Port(val.port_name)
@@ -76,6 +77,8 @@ sensor_list.each { | val |
 		p(tmp_sensor.getValue())
 	} else if (port.type == "in" && port.id == "1") {
 		sensor1 = new iev3_Sensor(val.id)
+	} else if (port.type == "in" && port.id == "2") {
+		sensor2 = new iev3_Sensor(val.id)
 	}
 }
 
@@ -105,6 +108,16 @@ motor_list.each { | val |
 let sm_acc = fn (motor) {
 	for (let i = 0, i < 100, i += 5) {
 		motor.runDirect(i)
+		receive() for(50)
+	}
+}
+
+let sm2_acc = fn (m1, m2, max) {
+	max ||= 60
+	m1.runDirect(0); m2.runDirect(0)
+	for (let i = 5, i < max, i += 5) {
+		m1.setDutyCircleSpeed(i)
+		m2.setDutyCircleSpeed(i)
 		receive() for(50)
 	}
 }
@@ -139,23 +152,6 @@ let wait_hold_while_do = fn (motor, block) {
 			p("hold!!")
 			break
 		}
-	}
-}
-
-let require = fn (args...) {
-	let block = args.last()
-	let run = 1
-	args.each { | val |
-		if (val == undefined || val == null) {
-			p("Require failed")
-			run = 0
-			if (typename(block) != "function") {
-				exit
-			}
-		}
-	}
-	if (run && typename(block) == "function") {
-			block()
 	}
 }
 
@@ -283,16 +279,36 @@ let apply_to_motor = fn (data) {
 	}
 }
 
-require(motorB, motorC) {
-		motorB.setRelat(100, 60)
-		motorC.setRelat(100, 60)
+//runDoubleRelat(motorB, motorC, 100, 3600)
 
-		motorB.goRelat()
-		motorC.goRelat()
+let is_black = fn (v) {
+	v >= 0 && v <= 15
+}
 
-		//wait_for_stop(motorB)
-		//wait_for_stop(motorC)
+require (motorB, motorC, sensor1, sensor2) {
+	sm2_acc(motorB, motorC, 40)
+	p("start")
+	for (let i = 0, i < 150, i++) {
+		if (is_black(sensor1.getValue())) {
+			if (is_black(sensor2.getValue())) {
+				motorB.setDutyCircleSpeed(10)
+				motorC.setDutyCircleSpeed(10)
+			} else {
+				motorB.setDutyCircleSpeed(0)
+				motorC.setDutyCircleSpeed(60)
+			}
+		} else {
+			if (is_black(sensor2.getValue())) {
+				motorB.setDutyCircleSpeed(60)
+				motorC.setDutyCircleSpeed(0)
+			} else {
+				// iev3_Sound_ESpeak("double white")
+				motorB.setDutyCircleSpeed(30)
+				motorC.setDutyCircleSpeed(30)
+			}
+		}
 	}
+}
 
 let get_ratio = fn (data) {
 	let bin_data = new Array()
@@ -339,7 +355,7 @@ require(motorA, sensor1, null) {
 
 if (0) {
 	iev3_Sound_ESpeak("Welcome to, ink, on E V 3 dev.")
-	iev3_Sound_ESpeak("其实我会说中文", 200, "-vzh")
+	// iev3_Sound_ESpeak("其实我会说中文", 200, "-vzh")
 
 	iev3_Sound_ESpeak("L E D")
 	iev3_Sound_ESpeak("测试", 200, "-vzh")
