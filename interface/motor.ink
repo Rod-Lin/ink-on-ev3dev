@@ -132,7 +132,7 @@ let iev3_Motor.getList = fn () {
 	let ret = new Array()
 
 	dir.each { | name |
-		if (name != "." && name != ".." && name.substr(0, 5) == "motor") {
+		if (name.length() > 5 && name.substr(0, 5) == "motor") {
 			ret.push({
 				id: numval(name.substr(5)),
 				port_name: inl () {
@@ -141,6 +141,21 @@ let iev3_Motor.getList = fn () {
 				} ()
 			})
 		}
+	}
+
+	ret
+}
+
+let iev3_Motor_motorIDMap = { A: 0, B: 1, C: 2, D: 3 }
+
+let iev3_Motor_procList = fn (list) {
+	let ret = { A: null, B: null, C: null, D: null} // port A-D
+	let port = null
+
+	list.each { | val |
+		/* parse port name */
+		port = new iev3_Port(val.port_name)
+		ret[port.id] = { port: port, val: new iev3_Motor(val.id) }
 	}
 
 	ret

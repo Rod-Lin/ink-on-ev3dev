@@ -33,3 +33,32 @@ let iev3_Sensor.getList = fn () {
 
 	ret
 }
+
+let iev3_Sensor_procList = fn (list) {
+	let ret = [null, null, null, null] // port 1-4
+	let port = null
+
+	list.each { | val |
+		/* parse port name */
+		port = new iev3_Port(val.port_name)
+
+		if (port.id > 0 && port.id <= ret.size()) {
+			if (port.is_mux) {
+				if (typename(ret[port.id - 1]) == "array") {
+					ret[port.id - 1][port.mux_id] = { port: port, sensor: new iev3_Sensor(val.id) }
+				} else {
+					ret[port.id - 1] = [null, null, null] // max 3 mux supported
+				}
+			} else {
+				ret[port.id - 1] = { port: port, val: new iev3_Sensor(val.id) }
+			}
+		}
+	}
+
+	ret.`_[]` = ret.`[]`
+	ret.`[]` = fn (i) {
+		base.`_[]`(i - 1)
+	}
+
+	ret
+}
